@@ -145,6 +145,12 @@ pub enum EngineTask {
         /// The generated images
         images: GeneratedContentImages,
     },
+    HandwritingRecognitionResult {
+        //JUMPPOINT
+        text: String,
+        // pass StrokeKeys here to know which strokes correspond to this text
+    },
+    TriggerHandwritingRecognition,
     /// Requests that the typewriter cursor should be blinked/toggled
     BlinkTypewriterCursor,
     /// Change the permanent zoom to the given value
@@ -191,6 +197,8 @@ pub struct Engine {
     pub camera: Camera,
     #[serde(rename = "penholder")]
     pub penholder: PenHolder,
+    #[serde(skip)]
+    pub handwriting_recognizer: crate::recognition::HandwritingRecognizer, //JUMPPOINT
 
     #[cfg(feature = "ui")]
     #[serde(skip)]
@@ -219,18 +227,20 @@ pub struct Engine {
 impl Default for Engine {
     fn default() -> Self {
         let (tasks_tx, tasks_rx) = futures::channel::mpsc::unbounded::<EngineTask>();
-
+        let task_sender = EngineTaskSender(tasks_tx);
         Self {
             config: EngineConfigShared(Arc::new(RwLock::new(EngineConfig::default()))),
             document: Document::default(),
             store: StrokeStore::default(),
             camera: Camera::default(),
             penholder: PenHolder::default(),
-
+            handwriting_recognizer: crate::recognition::HandwritingRecognizer::new(
+                task_sender.clone(),
+            ),
             #[cfg(feature = "ui")]
             audioplayer: None,
             animation: Animation::default(),
-            tasks_tx: EngineTaskSender(tasks_tx),
+            tasks_tx: task_sender,
             tasks_rx: Some(EngineTaskReceiver(tasks_rx)),
             background_tile_image: None,
             #[cfg(feature = "ui")]
@@ -472,6 +482,13 @@ impl Engine {
             EngineTask::Quit => {
                 widget_flags |= self.set_active(false);
                 quit = true;
+            }
+            EngineTask::TriggerHandwritingRecognition => {
+                self.trigger_handwriting_recognition();
+            }
+
+            EngineTask::HandwritingRecognitionResult { text } => {
+                tracing::info!("Successfully recognized text in main thread: {}", text);
             }
         }
 
@@ -909,5 +926,13 @@ impl Engine {
     pub fn current_pen_style_w_override(&self) -> PenStyle {
         self.penholder
             .current_pen_style_w_override(&engine_view!(self))
+    }
+    /// Triggers background handwriting recognition using all currently rendered strokes.
+    pub fn trigger_handwriting_recognition(&mut self) {
+        let strokes = self
+            .store
+            .get_strokes_arc(&self.store.stroke_keys_as_rendered());
+        self.handwriting_recognizer
+            .trigger_recognition_debounced(strokes);
     }
 }

@@ -286,6 +286,9 @@ impl PenBehaviour for Brush {
 
                         widget_flags |= engine_view.store.record(Instant::now());
                         widget_flags.store_modified = true;
+                        engine_view
+                            .tasks_tx
+                            .send(crate::engine::EngineTask::TriggerHandwritingRecognition);
 
                         PenProgress::Finished
                     }
