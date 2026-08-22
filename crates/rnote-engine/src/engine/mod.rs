@@ -121,6 +121,13 @@ impl EngineViewMut<'_> {
 }
 
 #[derive(Debug, Clone)]
+pub struct DeskewDebugData {
+    pub center: p2d::math::Vector2,
+    pub aabb_deskewed: p2d::bounding_volume::Aabb,
+    pub angle_rad: f64,
+}
+
+#[derive(Debug, Clone)]
 /// An engine task, usually coming from a spawned thread and to be processed with [Engine::handle_engine_task].
 pub enum EngineTask {
     /// Replace the images for rendering of the given stroke.
@@ -146,11 +153,16 @@ pub enum EngineTask {
         images: GeneratedContentImages,
     },
     HandwritingRecognitionResult {
-        //JUMPPOINT
-        text: String,
+        lines: Vec<(String, Aabb)>,
         // pass StrokeKeys here to know which strokes correspond to this text
     },
+
     TriggerHandwritingRecognition,
+
+    /// Deskew debug information for multiple lines.
+    DeskewDebugInfo {
+        data: Vec<DeskewDebugData>,
+    },
     /// Requests that the typewriter cursor should be blinked/toggled
     BlinkTypewriterCursor,
     /// Change the permanent zoom to the given value
@@ -199,6 +211,10 @@ pub struct Engine {
     pub penholder: PenHolder,
     #[serde(skip)]
     pub handwriting_recognizer: crate::recognition::HandwritingRecognizer, //JUMPPOINT
+    #[serde(skip)]
+    pub deskew_debug_data: Vec<DeskewDebugData>,
+    #[serde(skip)]
+    pub recognition_debug_text: Option<String>,
 
     #[cfg(feature = "ui")]
     #[serde(skip)]
@@ -228,6 +244,10 @@ impl Default for Engine {
     fn default() -> Self {
         let (tasks_tx, tasks_rx) = futures::channel::mpsc::unbounded::<EngineTask>();
         let task_sender = EngineTaskSender(tasks_tx);
+        let model_session = crate::recognition::load_model_session("./models/student_model.onnx")
+            .unwrap_or_else(|e| {
+                panic!("Failed to load handwriting recognition ONNX model: {e}");
+            });
         Self {
             config: EngineConfigShared(Arc::new(RwLock::new(EngineConfig::default()))),
             document: Document::default(),
@@ -236,7 +256,10 @@ impl Default for Engine {
             penholder: PenHolder::default(),
             handwriting_recognizer: crate::recognition::HandwritingRecognizer::new(
                 task_sender.clone(),
+                model_session,
             ),
+            deskew_debug_data: Vec::new(),
+            recognition_debug_text: None,
             #[cfg(feature = "ui")]
             audioplayer: None,
             animation: Animation::default(),
@@ -483,12 +506,45 @@ impl Engine {
                 widget_flags |= self.set_active(false);
                 quit = true;
             }
+            EngineTask::DeskewDebugInfo { data } => {
+                self.deskew_debug_data = data;
+                widget_flags.redraw = true;
+            }
             EngineTask::TriggerHandwritingRecognition => {
+                self.recognition_debug_text = Some("Recognizing...".to_string());
+                widget_flags.redraw = true;
                 self.trigger_handwriting_recognition();
             }
 
-            EngineTask::HandwritingRecognitionResult { text } => {
-                tracing::info!("Successfully recognized text in main thread: {}", text);
+            EngineTask::HandwritingRecognitionResult { lines } => {
+                tracing::info!(
+                    "Successfully recognized {} lines in main thread",
+                    lines.len()
+                );
+                let joined = lines
+                    .iter()
+                    .map(|(t, _)| t.clone())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                self.recognition_debug_text = Some(joined);
+
+                for (text, bounds) in lines {
+                    let mut text_style = TextStyle::default();
+                    // need a better way to put the text ontop of words
+                    let height = (bounds.maxs.y - bounds.mins.y).max(1.0);
+                    text_style.font_size = height;
+
+                    let textstroke = crate::strokes::TextStroke::new(text, bounds.mins, text_style);
+                    let stroke = crate::strokes::Stroke::TextStroke(textstroke);
+                    self.store.insert_stroke(stroke, None);
+                }
+
+                widget_flags.redraw = true;
+                widget_flags.refresh_ui = true;
+                widget_flags.view_modified = true;
+                widget_flags |= self.record(Instant::now())
+                    | self.update_rendering_current_viewport()
+                    | self.current_pen_update_state();
             }
         }
 
@@ -929,10 +985,9 @@ impl Engine {
     }
     /// Triggers background handwriting recognition using all currently rendered strokes.
     pub fn trigger_handwriting_recognition(&mut self) {
-        let strokes = self
-            .store
-            .get_strokes_arc(&self.store.stroke_keys_as_rendered());
+        let keys = self.store.stroke_keys_as_rendered();
+        let raw_stroke_data = self.store.extract_recognition_data(&keys);
         self.handwriting_recognizer
-            .trigger_recognition_debounced(strokes);
+            .trigger_recognition_debounced(raw_stroke_data);
     }
 }

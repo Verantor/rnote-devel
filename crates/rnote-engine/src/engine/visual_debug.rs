@@ -1,8 +1,8 @@
 // Imports
+use crate::engine::DeskewDebugData;
 #[cfg(feature = "ui")]
 use p2d::math::Vector2;
 use rnote_compose::Color;
-
 pub const COLOR_POS: Color = Color {
     r: 1.0,
     g: 0.0,
@@ -198,6 +198,69 @@ pub(crate) fn draw_statistics_to_gtk_snapshot(
     Ok(())
 }
 
+#[cfg(feature = "ui")]
+pub(crate) fn draw_recognition_text_to_gtk_snapshot(
+    snapshot: &gtk4::Snapshot,
+    engine: &crate::Engine,
+    surface_bounds: p2d::bounding_volume::Aabb,
+) -> anyhow::Result<()> {
+    if let Some(text) = &engine.recognition_debug_text {
+        use crate::ext::GrapheneRectExt;
+        use gtk4::{graphene, prelude::*};
+        use p2d::bounding_volume::Aabb;
+        use piet::{RenderContext, Text, TextLayout, TextLayoutBuilder};
+        use rnote_compose::ext::{AabbExt, Vector2Ext};
+
+        // 20 px padding from statistics
+        let start_y = surface_bounds.mins[1] + 140.0;
+
+        let max_cairo_bounds = Aabb::new(
+            Vector2::new(surface_bounds.maxs[0] - 320.0, start_y),
+            Vector2::new(surface_bounds.maxs[0] - 20.0, start_y + 800.0),
+        );
+
+        let cairo_cx = snapshot.append_cairo(&graphene::Rect::from_p2d_aabb(max_cairo_bounds));
+        let mut piet_cx = piet_cairo::CairoRenderContext::new(&cairo_cx);
+
+        let display_string = format!("recognized text:\n{}", text);
+        let max_text_width = 280.0;
+
+        let text_layout = piet_cx
+            .text()
+            .new_text_layout(display_string)
+            .text_color(piet::Color::rgba(0.8, 1.0, 1.0, 1.0))
+            .max_width(max_text_width)
+            .alignment(piet::TextAlignment::End)
+            .font(piet::FontFamily::MONOSPACE, 10.0)
+            .build()
+            .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+        let text_size = text_layout.size();
+        let padding = 10.0;
+
+        let box_bounds = Aabb::new(
+            Vector2::new(surface_bounds.maxs[0] - 320.0, start_y),
+            Vector2::new(
+                surface_bounds.maxs[0] - 20.0,
+                start_y + text_size.height + (padding * 2.0),
+            ),
+        );
+
+        piet_cx.fill(
+            box_bounds.to_kurbo_rect(),
+            &piet::Color::rgba(0.1, 0.1, 0.1, 0.8),
+        );
+
+        piet_cx.draw_text(
+            &text_layout,
+            (box_bounds.mins + Vector2::splat(padding)).to_kurbo_point(),
+        );
+
+        piet_cx.finish().map_err(|e| anyhow::anyhow!("{e:?}"))?;
+    }
+    Ok(())
+}
+
 /// Draw stroke bounds, positions, etc. for visual debugging purposes.
 #[cfg(feature = "ui")]
 pub(crate) fn draw_stroke_debug_to_gtk_snapshot(
@@ -223,6 +286,9 @@ pub(crate) fn draw_stroke_debug_to_gtk_snapshot(
         snapshot,
         border_widths,
     );
+    if !engine.deskew_debug_data.is_empty() {
+        draw_deskew_debug_to_gtk_snapshot(snapshot, &engine.deskew_debug_data, total_zoom);
+    }
 
     // Draw the strokes
     engine
@@ -235,4 +301,41 @@ pub(crate) fn draw_stroke_debug_to_gtk_snapshot(
     }
 
     Ok(())
+}
+
+#[cfg(feature = "ui")]
+pub(crate) fn draw_deskew_debug_to_gtk_snapshot(
+    snapshot: &gtk4::Snapshot,
+    debug_data_list: &[DeskewDebugData],
+    total_zoom: f64,
+) {
+    use gtk4::{graphene, prelude::*};
+
+    let border_widths = 1.0 / total_zoom;
+    let point_size = 5.0 / total_zoom;
+
+    for data in debug_data_list {
+        snapshot.save();
+
+        snapshot.translate(&graphene::Point::new(
+            data.center.x as f32,
+            data.center.y as f32,
+        ));
+        snapshot.rotate(data.angle_rad.to_degrees() as f32);
+        snapshot.translate(&graphene::Point::new(
+            -data.center.x as f32,
+            -data.center.y as f32,
+        ));
+
+        draw_bounds_to_gtk_snapshot(
+            data.aabb_deskewed,
+            COLOR_STROKE_BOUNDS,
+            snapshot,
+            border_widths,
+        );
+
+        snapshot.restore();
+
+        draw_pos_to_gtk_snapshot(snapshot, data.center, COLOR_SELECTOR_BOUNDS, point_size);
+    }
 }

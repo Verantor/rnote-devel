@@ -2,6 +2,7 @@
 use super::StrokeKey;
 use super::render_comp::RenderCompState;
 use crate::engine::StrokeContent;
+use crate::recognition::{RecognitionPoint, RecognitionStroke};
 use crate::strokes::{Content, Stroke};
 use crate::{StrokeStore, WidgetFlags};
 use geo::intersects::Intersects;
@@ -738,6 +739,30 @@ impl StrokeStore {
                 // select keys
                 self.set_selected(key, true);
                 key
+            })
+            .collect()
+    }
+    /// Extracts simplified stroke data for the handwriting recognition engine.
+    pub(crate) fn extract_recognition_data(&self, keys: &[StrokeKey]) -> Vec<RecognitionStroke> {
+        keys.iter()
+            .filter_map(|&key| self.stroke_components.get(key))
+            .filter_map(|stroke| {
+                let Stroke::BrushStroke(brush_stroke) = &**stroke else {
+                    return None;
+                };
+
+                let mut points = Vec::with_capacity(brush_stroke.path.segments.len() + 1);
+                points.push(RecognitionPoint {
+                    pos: brush_stroke.path.start.pos,
+                });
+
+                for segment in &brush_stroke.path.segments {
+                    points.push(RecognitionPoint {
+                        pos: segment.end().pos, 
+                    });
+                }
+
+                Some(RecognitionStroke { points })
             })
             .collect()
     }

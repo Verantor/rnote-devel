@@ -58,6 +58,9 @@ usvg = { workspace = true }
 xmlwriter = { workspace = true }
 # the long-term plan is to remove the gtk4 dependency entirely after switching to another renderer.
 gtk4 = { workspace = true, optional = true }
+ort = { version = "=2.0.0-rc.13", features = [ "ndarray"] }
+ndarray = "0.17.2"
+# to be moved sometime somewhere idk
 
 [dev-dependencies]
 approx = { workspace = true }

@@ -36,7 +36,7 @@
             meson
             just
             git
-
+            openssl
             appstream
             gettext
             desktop-file-utils
@@ -61,6 +61,7 @@
             libadwaita
             librsvg
             alsa-lib
+            openssl
             libxml2
           ];
         };

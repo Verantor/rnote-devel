@@ -202,6 +202,7 @@ impl Engine {
             snapshot.restore();
 
             visual_debug::draw_statistics_to_gtk_snapshot(snapshot, self, surface_bounds)?;
+            visual_debug::draw_recognition_text_to_gtk_snapshot(snapshot, self, surface_bounds)?;
         }
 
         Ok(())
