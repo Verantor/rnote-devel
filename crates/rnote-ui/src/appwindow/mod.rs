@@ -11,6 +11,7 @@ use crate::{
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Ref, RefMut};
 use gettextrs::gettext;
+use glib::clone;
 use gtk4::{Application, IconTheme, Widget, gdk, gio, glib};
 use p2d::math::Vector2;
 use rnote_compose::Color;
@@ -212,6 +213,78 @@ impl RnAppWindow {
         imp.overlays.get().init(self);
         imp.sidebar.get().init(self);
         imp.main_header.get().init(self);
+
+        let main_header = self.main_header();
+        let search_entry = self.main_header().search_entry();
+        // Switch to search page when the button is toggled
+        main_header.search_toggle().connect_toggled(clone!(
+            #[weak]
+            main_header,
+            move |btn| {
+                if btn.is_active() {
+                    main_header
+                        .title_stack()
+                        .set_visible_child_name("search_page");
+                    main_header.search_entry().grab_focus();
+                } else {
+                    main_header
+                        .title_stack()
+                        .set_visible_child_name("breadcrumbs_page");
+                }
+            }
+        ));
+        search_entry.connect_activate(glib::clone!(
+            #[weak(rename_to = window)]
+            self,
+            move |_| {
+                if let Some(canvas) = window.active_tab_canvas() {
+                    let mut engine_mut = canvas.engine_mut();
+
+                    // Move camera
+                    let flags = engine_mut.focus_next_search_result();
+
+                    // Trigger UI updates
+                    window.handle_widget_flags(flags, &canvas);
+                }
+            }
+        ));
+        // Revert to breadcrumbs if the user presses 'Escape' inside the search entry
+        main_header.search_entry().connect_stop_search(clone!(
+            #[weak]
+            main_header,
+            move |_| {
+                main_header.search_toggle().set_active(false);
+            }
+        ));
+
+        // --- NEW: Handle live search text changes ---
+        main_header.search_entry().connect_search_changed(clone!(
+            #[weak(rename_to = window)]
+            self,
+            move |entry| {
+                let query = entry.text();
+
+                // Get the currently active canvas
+                if let Some(canvas) = window.active_tab_canvas() {
+                    let mut engine_mut = canvas.engine_mut();
+
+                    // 1. Run the search in the engine store
+                    let results = engine_mut.search_document(&query);
+
+                    // 2. Store the active results in the engine so the renderer can see them
+                    engine_mut.set_search_results(results);
+
+                    // 3. Flag the canvas for a redraw to show/hide highlights
+                    let mut flags = WidgetFlags::default();
+                    flags.redraw = true;
+                    window.handle_widget_flags(flags, &canvas);
+                }
+            }
+        ));
+        // --------------------------------------------
+
+        // actions and settings AFTER widget inits
+        self.setup_icon_theme();
 
         // actions and settings AFTER widget inits
         self.setup_icon_theme();
@@ -546,16 +619,16 @@ impl RnAppWindow {
             .set_visible(canvas.unsaved_changes());
         if canvas.unsaved_changes() {
             self.main_header()
-                .main_title()
+                .path_file_button()
                 .add_css_class("unsaved_changes");
         } else {
             self.main_header()
-                .main_title()
+                .path_file_button()
                 .remove_css_class("unsaved_changes");
         }
 
-        self.main_header().main_title().set_title(&title);
-        self.main_header().main_title().set_subtitle(&subtitle);
+        self.main_header().path_file_content().set_label(&title);
+        self.main_header().path_dir_content().set_label(&subtitle);
     }
 
     /// Open the file, with import dialogs when appropriate.

@@ -1,29 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ### Headerbar ### -->
 <interface>
   <template class="RnMainHeader" parent="GtkWidget">
     <property name="layout-manager">
-      <object class="GtkBinLayout" />
+      <object class="GtkBinLayout"></object>
     </property>
     <child>
       <object class="AdwHeaderBar" id="headerbar">
         <property name="centering-policy">loose</property>
         <property name="vexpand">false</property>
         <property name="title-widget">
-          <object class="GtkBox">
+          <object class="GtkStack" id="title_stack">
+            <property name="hhomogeneous">false</property>
+            <property name="vhomogeneous">true</property>
+            <property name="transition-type">crossfade</property>
+            <property name="hexpand">true</property>
             <child>
-              <object class="GtkLabel" id="main_title_unsaved_indicator">
-                <property name="label">•</property>
-                <property name="visible">false</property>
+              <object class="GtkStackPage">
+                <property name="name">breadcrumbs_page</property>
+                <property name="child">
+                  <object class="GtkScrolledWindow" id="path_bar_scrolled">
+                    <property name="vscrollbar-policy">never</property>
+                    <property name="hscrollbar-policy">automatic</property>
+                    <property name="propagate-natural-width">true</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="child">
+                      <object class="GtkBox" id="breadcrumbs_box">
+                        <property name="spacing">0</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <child>
+                          <object class="GtkButton" id="path_dir_button">
+                            <property name="child">
+                              <object class="AdwButtonContent" id="path_dir_content">
+                                <property name="icon-name">folder-symbolic</property>
+                                <property name="label">Documents</property>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="path_separator">
+                            <property name="label">/</property>
+                            <property name="margin-start">4</property>
+                            <property name="margin-end">4</property>
+                            <style>
+                              <class name="dimmed"></class>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="path_file_button">
+                            <property name="child">
+                              <object class="AdwButtonContent" id="path_file_content">
+                                <property name="icon-name">text-x-generic-symbolic</property>
+                                <property name="label">New Document.txt</property>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="main_title_unsaved_indicator">
+                            <property name="label">•</property>
+                            <property name="margin-start">4</property>
+                            <property name="margin-end">4</property>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </property>
               </object>
             </child>
             <child>
-              <object class="AdwWindowTitle" id="main_title">
-                <property name="title" translatable="yes">New Document</property>
-                <property name="subtitle" translatable="yes">Draft</property>
-                <style>
-                  <class name="main_title" />
-                </style>
+              <object class="GtkStackPage">
+                <property name="name">search_page</property>
+                <property name="child">
+                  <object class="AdwClamp">
+                    <property name="maximum-size">450</property>
+                    <property name="hexpand">true</property>
+                    <property name="child">
+                      <object class="GtkSearchEntry" id="search_entry">
+                        <property name="placeholder-text" translatable="yes">Search document...</property>
+                        <property name="valign">center</property>
+                      </object>
+                    </property>
+                  </object>
+                </property>
               </object>
             </child>
           </object>
@@ -71,6 +134,12 @@
             <property name="limit-events">true</property>
             <property name="spacing">3</property>
             <child>
+              <object class="GtkToggleButton" id="search_toggle">
+                <property name="icon-name">system-search-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Search</property>
+              </object>
+            </child>
+            <child>
               <object class="GtkButton">
                 <property name="tooltip-text" translatable="yes">Save Document</property>
                 <property name="icon-name">save-symbolic</property>
@@ -89,7 +158,7 @@
                 <child>
                   <object class="RnCanvasMenu" id="canvasmenu">
                     <property name="tooltip-text" translatable="yes">Canvas Menu</property>
-                  </object> 
+                  </object>
                 </child>
                 <child>
                   <object class="RnAppMenu" id="appmenu">

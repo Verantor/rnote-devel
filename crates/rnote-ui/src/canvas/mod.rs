@@ -472,7 +472,7 @@ mod imp {
                 let clip_bounds = if let Some(parent) = obj.parent() {
                     Aabb::new_positive(
                         parent
-                            .compute_point(&*obj, &graphene::Point::zero())
+                            .compute_point(&*obj, &gtk4::graphene::Point::zero())
                             .unwrap()
                             .to_p2d_vec(),
                         Vector2::new(parent.width() as f64, parent.height() as f64),
@@ -481,12 +481,49 @@ mod imp {
                     obj.bounds()
                 };
                 // push the clip
-                snapshot.push_clip(&graphene::Rect::from_p2d_aabb(clip_bounds));
+                snapshot.push_clip(&gtk4::graphene::Rect::from_p2d_aabb(clip_bounds));
 
-                // Draw the entire engine
+                // Draw the entire engine (Strokes, Background, etc.)
                 self.engine
                     .borrow()
                     .draw_to_gtk_snapshot(snapshot, obj.bounds())?;
+
+                // Draw highlights for searchy
+                {
+                    let engine = self.engine.borrow();
+                    if !engine.active_search_results.is_empty() {
+                        let zoom = engine.camera.zoom();
+                        let offset = engine.camera.offset();
+
+                        let highlight_color = gtk4::gdk::RGBA::new(1.0, 1.0, 0.0, 0.35); 
+                        let active_color = gtk4::gdk::RGBA::new(1.0, 0.6, 0.0, 0.6); 
+
+                        for (i, result) in engine.active_search_results.iter().enumerate() {
+                            let bounds = result.bounds;
+
+                            let x = (bounds.mins.x * zoom) - offset.x;
+                            let y = (bounds.mins.y * zoom) - offset.y;
+                            let width = (bounds.maxs.x - bounds.mins.x) * zoom;
+                            let height = (bounds.maxs.y - bounds.mins.y) * zoom;
+
+                            let rect = gtk4::graphene::Rect::new(
+                                x as f32,
+                                y as f32,
+                                width as f32,
+                                height as f32,
+                            );
+
+                            let color = if i == engine.current_search_index {
+                                &active_color
+                            } else {
+                                &highlight_color
+                            };
+
+                            snapshot.append_color(color, &rect);
+                        }
+                    }
+                }
+                // -----------------------------------
 
                 // pop the clip
                 snapshot.pop();

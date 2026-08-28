@@ -97,6 +97,9 @@ impl PenBehaviour for Eraser {
                 widget_flags |=
                     erase(element, engine_view) | engine_view.store.record(Instant::now());
                 self.state = EraserState::Up;
+                let _ = engine_view
+                    .tasks_tx
+                    .send(crate::engine::EngineTask::TriggerHandwritingRecognition);
                 EventResult {
                     handled: true,
                     propagate: EventPropagation::Stop,

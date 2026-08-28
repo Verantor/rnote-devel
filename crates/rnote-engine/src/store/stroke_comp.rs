@@ -745,8 +745,8 @@ impl StrokeStore {
     /// Extracts simplified stroke data for the handwriting recognition engine.
     pub(crate) fn extract_recognition_data(&self, keys: &[StrokeKey]) -> Vec<RecognitionStroke> {
         keys.iter()
-            .filter_map(|&key| self.stroke_components.get(key))
-            .filter_map(|stroke| {
+            .filter_map(|&key| {
+                let stroke = self.stroke_components.get(key)?;
                 let Stroke::BrushStroke(brush_stroke) = &**stroke else {
                     return None;
                 };
@@ -758,12 +758,12 @@ impl StrokeStore {
 
                 for segment in &brush_stroke.path.segments {
                     points.push(RecognitionPoint {
-                        pos: segment.end().pos, 
+                        pos: segment.end().pos,
                     });
                 }
 
-                Some(RecognitionStroke { points })
+                Some(RecognitionStroke { id: key, points })
             })
             .collect()
-    }
+    } 
 }

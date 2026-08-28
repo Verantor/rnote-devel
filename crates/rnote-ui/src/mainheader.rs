@@ -1,7 +1,8 @@
 // Imports
 use crate::{appmenu::RnAppMenu, appwindow::RnAppWindow, canvasmenu::RnCanvasMenu};
 use gtk4::{
-    CompositeTemplate, Label, ToggleButton, Widget, glib, prelude::*, subclass::prelude::*,
+    Button, CompositeTemplate, Label, SearchEntry, ToggleButton, Widget, glib, prelude::*,
+    subclass::prelude::*,
 };
 
 mod imp {
@@ -12,8 +13,19 @@ mod imp {
     pub(crate) struct RnMainHeader {
         #[template_child]
         pub(crate) headerbar: TemplateChild<adw::HeaderBar>,
+
         #[template_child]
-        pub(crate) main_title: TemplateChild<adw::WindowTitle>,
+        pub(crate) path_dir_button: TemplateChild<Button>,
+        #[template_child]
+        pub(crate) path_file_button: TemplateChild<Button>,
+        #[template_child]
+        pub(crate) path_dir_content: TemplateChild<adw::ButtonContent>,
+        #[template_child]
+        pub(crate) path_file_content: TemplateChild<adw::ButtonContent>,
+        #[template_child]
+        pub(crate) search_toggle: TemplateChild<ToggleButton>,
+        #[template_child]
+        pub(crate) search_entry: TemplateChild<SearchEntry>,
         #[template_child]
         pub(crate) main_title_unsaved_indicator: TemplateChild<Label>,
         #[template_child]
@@ -24,6 +36,8 @@ mod imp {
         pub(crate) canvasmenu: TemplateChild<RnCanvasMenu>,
         #[template_child]
         pub(crate) appmenu: TemplateChild<RnAppMenu>,
+        #[template_child]
+        pub(crate) title_stack: TemplateChild<gtk4::Stack>,
     }
 
     #[glib::object_subclass]
@@ -77,8 +91,20 @@ impl RnMainHeader {
         self.imp().headerbar.get()
     }
 
-    pub(crate) fn main_title(&self) -> adw::WindowTitle {
-        self.imp().main_title.get()
+    pub(crate) fn path_dir_button(&self) -> Button {
+        self.imp().path_dir_button.get()
+    }
+
+    pub(crate) fn path_file_button(&self) -> Button {
+        self.imp().path_file_button.get()
+    }
+
+    pub(crate) fn search_toggle(&self) -> ToggleButton {
+        self.imp().search_toggle.get()
+    }
+
+    pub(crate) fn search_entry(&self) -> SearchEntry {
+        self.imp().search_entry.get()
     }
 
     pub(crate) fn main_title_unsaved_indicator(&self) -> Label {
@@ -100,10 +126,21 @@ impl RnMainHeader {
     pub(crate) fn appmenu(&self) -> RnAppMenu {
         self.imp().appmenu.get()
     }
+    
+    pub(crate) fn path_dir_content(&self) -> adw::ButtonContent {
+        self.imp().path_dir_content.get()
+    }
 
+    pub(crate) fn path_file_content(&self) -> adw::ButtonContent {
+        self.imp().path_file_content.get()
+    }
+    
+    pub(crate) fn title_stack(&self) -> gtk4::Stack {
+        self.imp().title_stack.get()
+    }
+    
     pub(crate) fn init(&self, appwindow: &RnAppWindow) {
         let imp = self.imp();
-
         imp.canvasmenu.get().init(appwindow);
         imp.appmenu.get().init(appwindow);
     }

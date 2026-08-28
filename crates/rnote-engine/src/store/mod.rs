@@ -2,14 +2,18 @@
 pub mod chrono_comp;
 pub mod keytree;
 pub mod render_comp;
+pub mod search_comp;
 pub mod selection_comp;
 pub mod stroke_comp;
+pub mod text_comp;
 pub mod trash_comp;
 
 // Re-exports
+use crate::store::text_comp::TextLine;
 pub use chrono_comp::ChronoComponent;
 use keytree::KeyTree;
 pub use render_comp::RenderComponent;
+pub use search_comp::SearchResult;
 pub use selection_comp::SelectionComponent;
 pub use trash_comp::TrashComponent;
 
@@ -96,6 +100,8 @@ pub struct StrokeStore {
     /// Needs to be updated with `update_with_key()` when strokes changed their geometry or position!
     #[serde(skip)]
     key_tree: KeyTree,
+
+    pub recognized_text: Vec<TextLine>,
 }
 
 impl Default for StrokeStore {
@@ -106,7 +112,7 @@ impl Default for StrokeStore {
             selection_components: Arc::new(SecondaryMap::new()),
             chrono_components: Arc::new(SecondaryMap::new()),
             render_components: SecondaryMap::new(),
-
+            recognized_text: Vec::new(),
             // Start off with state in the history
             history: VecDeque::from(vec![HistoryEntry::default()]),
             live_index: 0,
@@ -367,5 +373,8 @@ impl StrokeStore {
         self.key_tree.clear();
 
         widget_flags
+    }
+    pub fn update_recognized_text(&mut self, new_lines: Vec<TextLine>) {
+        self.recognized_text.extend(new_lines);
     }
 }

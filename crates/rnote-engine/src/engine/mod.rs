@@ -22,8 +22,10 @@ use crate::Image;
 use crate::document::Layout;
 use crate::pens::PenMode;
 use crate::pens::{Pen, PenStyle};
+use crate::store::SearchResult;
 use crate::store::StrokeKey;
 use crate::store::render_comp::{self, RenderCompState};
+use crate::store::text_comp::TextLine;
 use crate::strokes::content::GeneratedContentImages;
 use crate::strokes::textstroke::{TextAttribute, TextStyle};
 use crate::{Camera, Document, PenHolder, StrokeStore};
@@ -153,8 +155,7 @@ pub enum EngineTask {
         images: GeneratedContentImages,
     },
     HandwritingRecognitionResult {
-        lines: Vec<(String, Aabb)>,
-        // pass StrokeKeys here to know which strokes correspond to this text
+        lines: Vec<TextLine>, //consists now of strokes bunds and text 
     },
 
     TriggerHandwritingRecognition,
@@ -210,11 +211,15 @@ pub struct Engine {
     #[serde(rename = "penholder")]
     pub penholder: PenHolder,
     #[serde(skip)]
-    pub handwriting_recognizer: crate::recognition::HandwritingRecognizer, //JUMPPOINT
+    pub handwriting_recognizer: crate::recognition::HandwritingRecognizer,
     #[serde(skip)]
     pub deskew_debug_data: Vec<DeskewDebugData>,
     #[serde(skip)]
     pub recognition_debug_text: Option<String>,
+    #[serde(skip)]
+    pub active_search_results: Vec<crate::store::SearchResult>,
+    #[serde(skip)]
+    pub current_search_index: usize,
 
     #[cfg(feature = "ui")]
     #[serde(skip)]
@@ -258,6 +263,8 @@ impl Default for Engine {
                 task_sender.clone(),
                 model_session,
             ),
+            active_search_results: Vec::new(),
+            current_search_index: 0,
             deskew_debug_data: Vec::new(),
             recognition_debug_text: None,
             #[cfg(feature = "ui")]
@@ -276,8 +283,6 @@ impl Default for Engine {
 }
 
 impl Engine {
-    pub(crate) const STROKE_BOUNDS_INTERSECTION_TOLERANCE: f64 = 1e-3;
-
     pub fn install_config(
         &mut self,
         config: &EngineConfigShared,
@@ -518,33 +523,20 @@ impl Engine {
 
             EngineTask::HandwritingRecognitionResult { lines } => {
                 tracing::info!(
-                    "Successfully recognized {} lines in main thread",
+                    "Successfully recognized/recycled {} lines in main thread",
                     lines.len()
                 );
                 let joined = lines
                     .iter()
-                    .map(|(t, _)| t.clone())
+                    .map(|line| line.text.as_str())
                     .collect::<Vec<_>>()
                     .join("\n");
                 self.recognition_debug_text = Some(joined);
 
-                for (text, bounds) in lines {
-                    let mut text_style = TextStyle::default();
-                    // need a better way to put the text ontop of words
-                    let height = (bounds.maxs.y - bounds.mins.y).max(1.0);
-                    text_style.font_size = height;
-
-                    let textstroke = crate::strokes::TextStroke::new(text, bounds.mins, text_style);
-                    let stroke = crate::strokes::Stroke::TextStroke(textstroke);
-                    self.store.insert_stroke(stroke, None);
-                }
+                self.store.recognized_text = lines;
 
                 widget_flags.redraw = true;
                 widget_flags.refresh_ui = true;
-                widget_flags.view_modified = true;
-                widget_flags |= self.record(Instant::now())
-                    | self.update_rendering_current_viewport()
-                    | self.current_pen_update_state();
             }
         }
 
@@ -987,7 +979,43 @@ impl Engine {
     pub fn trigger_handwriting_recognition(&mut self) {
         let keys = self.store.stroke_keys_as_rendered();
         let raw_stroke_data = self.store.extract_recognition_data(&keys);
+        let existing_text = self.store.recognized_text.clone();
+
         self.handwriting_recognizer
-            .trigger_recognition_debounced(raw_stroke_data);
+            .trigger_recognition_debounced(raw_stroke_data, existing_text);
+    }
+
+    pub(crate) const STROKE_BOUNDS_INTERSECTION_TOLERANCE: f64 = 1e-3;
+    pub fn search_document(&self, query: &str) -> Vec<crate::store::SearchResult> {
+        self.store.search(query)
+    }
+
+    pub fn set_search_results(&mut self, results: Vec<crate::store::SearchResult>) {
+        self.active_search_results = results;
+        self.current_search_index = 0; // Reset index on new search
+    }
+
+    /// jumps cam to the next search results
+    pub fn focus_next_search_result(&mut self) -> WidgetFlags {
+        if self.active_search_results.is_empty() {
+            return WidgetFlags::default();
+        }
+
+        self.current_search_index =
+            (self.current_search_index + 1) % self.active_search_results.len();
+        let target_bounds = self.active_search_results[self.current_search_index].bounds;
+
+        let center_x = target_bounds.mins.x + (target_bounds.maxs.x - target_bounds.mins.x) / 2.0;
+        let center_y = target_bounds.mins.y + (target_bounds.maxs.y - target_bounds.mins.y) / 2.0;
+
+        let zoom = self.camera.zoom();
+        let viewport_size = self.camera.size();
+
+        let new_offset = p2d::math::Vector2::new(
+            (center_x * zoom) - (viewport_size.x / 2.0),
+            (center_y * zoom) - (viewport_size.y / 2.0),
+        );
+
+        self.camera_set_offset_expand(new_offset)
     }
 }

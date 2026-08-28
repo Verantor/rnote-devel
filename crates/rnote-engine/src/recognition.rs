@@ -1,6 +1,8 @@
 extern crate alloc;
+use crate::store::text_comp::TextLine;
 
 use crate::engine::{EngineTask, EngineTaskSender};
+use crate::store::StrokeKey;
 // use crate::strokes::Stroke;
 use crate::tasks::{OneOffTaskError, OneOffTaskHandle};
 use p2d::bounding_volume::{Aabb, BoundingVolume};
@@ -26,11 +28,11 @@ pub fn load_model_session(path: &str) -> Result<Session, Box<dyn std::error::Err
 #[derive(Debug, Clone)]
 pub struct RecognitionPoint {
     pub pos: Vector2,
-    //pub pressure: f64,
 }
 
 #[derive(Debug, Clone)]
 pub struct RecognitionStroke {
+    pub id: StrokeKey,
     pub points: Vec<RecognitionPoint>,
 }
 
@@ -221,12 +223,12 @@ pub fn deskew_strokes(strokes: &[RecognitionStroke]) -> Vec<RecognitionStroke> {
                 })
                 .collect();
             RecognitionStroke {
+                id: stroke.id,
                 points: rotated_points,
             }
         })
         .collect()
 }
-
 // --- Preprocessing & Rendering ---
 
 fn process_strokes_to_tensor(
@@ -372,7 +374,11 @@ impl HandwritingRecognizer {
     // Notice that you now feed it `Vec<RecognitionStroke>` directly from the caller
     // (where `StrokeStore` will have extracted it), OR you can call `Stroke::extract_recognition_data` here
     // if you keep the method on `Stroke`.
-    pub fn trigger_recognition_debounced(&self, raw_stroke_data: Vec<RecognitionStroke>) {
+    pub fn trigger_recognition_debounced(
+        &self,
+        raw_stroke_data: Vec<RecognitionStroke>,
+        existing_text: Vec<TextLine>,
+    ) {
         const TIMEOUT: Duration = Duration::from_millis(1200);
         let mut reinstall_task = false;
         let tasks_tx = self.tasks_tx.clone();
@@ -383,16 +389,10 @@ impl HandwritingRecognizer {
                 return;
             }
 
-            info!(
-                "Background Recognition triggered for {} brush strokes.",
-                raw_stroke_data.len()
-            );
-
             let lines = segment_into_lines(&raw_stroke_data, 0.0);
-            // Store tuples of (recognized_text, original_bounds)
-            let mut recognized_lines: Vec<(String, Aabb)> = Vec::new();
-            // Collect deskew debug info for all lines and send once afterwards
+            let mut recognized_lines: Vec<TextLine> = Vec::new();
             let mut deskew_debug_infos: Vec<crate::engine::DeskewDebugData> = Vec::new();
+
             let max_w = 512;
             let max_h = 32;
 
@@ -401,20 +401,32 @@ impl HandwritingRecognizer {
                     continue;
                 }
 
-                // Extract original bounds for the current line (pre-deskew)
+                // fingerprinting of strokes
+                let mut current_stroke_ids: Vec<StrokeKey> =
+                    line_strokes.iter().map(|s| s.id).collect();
+                current_stroke_ids.sort(); // Sort to ensure consistent comparison
+
+                // check if we know this line
+                let already_recognized = existing_text.iter().find(|old_line| {
+                    let mut old_ids = old_line.stroke_keys.clone();
+                    old_ids.sort();
+                    old_ids == current_stroke_ids
+                });
+
+                if let Some(reusable_line) = already_recognized {
+                    // skip recogniton and reuse the old result
+                    recognized_lines.push(reusable_line.clone());
+                    continue;
+                }
+
                 let original_bounds =
                     get_strokes_bounds(&line_strokes).unwrap_or_else(|| Aabb::new_invalid());
-
-                // Calculate angle and deskew
                 let angle_rad = calculate_skew_angle(&line_strokes);
                 let center = get_global_center(&line_strokes);
                 let deskewed_line = deskew_strokes(&line_strokes);
-
-                // Bounds of the flattened (deskewed) line
                 let deskewed_bounds =
                     get_strokes_bounds(&deskewed_line).unwrap_or_else(|| Aabb::new_invalid());
 
-                // Push into our vector instead of sending a task immediately
                 deskew_debug_infos.push(crate::engine::DeskewDebugData {
                     center,
                     aabb_deskewed: deskewed_bounds,
@@ -475,14 +487,25 @@ impl HandwritingRecognizer {
                         let vocab_size = shape[2] as usize;
 
                         let vocab: &[char] = &[
-                            '\0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-                            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A',
-                            'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-                            'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2',
-                            '3', '4', '5', '6', '7', '8', '9', '.', ',', '!', '?', '-', ';', ':',
-                            '(', ')', '"', '\'', ' ', 'ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü', 'ß',
+                            '\0', // Letters: Lowercase (English + German)
+                            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+                            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö',
+                            'ü', 'ß', // Letters: Uppercase (English + German)
+                            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+                            'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ä', 'Ö',
+                            'Ü', // Numbers
+                            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                            // Basic Punctuation (Sentence structure)
+                            '.', ',', ':', ';', '!', '?',
+                            // Dashes and Quotes (Including en-dash)
+                            '-', '"', // Brackets and Parentheses
+                            '(', ')', '[', ']', // Math, Logic, and Paths
+                            '+', '*', '/', '\\', '=', '<', '>', '^',
+                            // Currency, Units, Tech, and Misc Symbols
+                            '_', '%', '°', '$', '€', '@', '#', '&', '§',
+                            // Whitespace (Space)
+                            ' ',
                         ];
-
                         let mut decoded_chars = Vec::new();
                         let mut last_token = None;
 
@@ -514,23 +537,20 @@ impl HandwritingRecognizer {
                 };
 
                 if let Some(recognized_text) = recognized_text {
-                    info!(
-                        "Line {} recognized: {} at {:?}",
-                        line_index, recognized_text, original_bounds
-                    );
-                    recognized_lines.push((recognized_text, original_bounds));
+                    recognized_lines.push(TextLine {
+                        text: recognized_text,
+                        bounds: original_bounds,
+                        stroke_keys: current_stroke_ids,
+                    });
                 }
             }
 
             if !recognized_lines.is_empty() {
-                info!("Successfully recognized {} lines.", recognized_lines.len());
-                // Send collected deskew debug infos for all lines
                 if !deskew_debug_infos.is_empty() {
                     tasks_tx.send(EngineTask::DeskewDebugInfo {
                         data: deskew_debug_infos,
                     });
                 }
-
                 tasks_tx.send(EngineTask::HandwritingRecognitionResult {
                     lines: recognized_lines,
                 });
