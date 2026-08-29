@@ -765,5 +765,5 @@ impl StrokeStore {
                 Some(RecognitionStroke { id: key, points })
             })
             .collect()
-    } 
+    }
 }

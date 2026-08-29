@@ -495,8 +495,8 @@ mod imp {
                         let zoom = engine.camera.zoom();
                         let offset = engine.camera.offset();
 
-                        let highlight_color = gtk4::gdk::RGBA::new(1.0, 1.0, 0.0, 0.35); 
-                        let active_color = gtk4::gdk::RGBA::new(1.0, 0.6, 0.0, 0.6); 
+                        let highlight_color = gtk4::gdk::RGBA::new(1.0, 1.0, 0.0, 0.35);
+                        let active_color = gtk4::gdk::RGBA::new(1.0, 0.6, 0.0, 0.6);
 
                         for (i, result) in engine.active_search_results.iter().enumerate() {
                             let bounds = result.bounds;

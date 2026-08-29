@@ -19,7 +19,7 @@ impl StrokeStore {
             return results;
         }
 
-        // search for typed text 
+        // search for typed text
         for (key, stroke) in self.stroke_components.iter() {
             if self.trashed(key).unwrap_or(false) {
                 continue;
@@ -41,7 +41,7 @@ impl StrokeStore {
             if line.text.to_lowercase().contains(&query_lower) {
                 results.push(SearchResult {
                     text: line.text.clone(),
-                    bounds: line.bounds, 
+                    bounds: line.bounds,
                     stroke_keys: line.stroke_keys.clone(),
                 });
             }
