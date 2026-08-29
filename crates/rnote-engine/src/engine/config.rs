@@ -20,6 +20,8 @@ pub struct EngineConfig {
     pub optimize_epd: bool,
     #[serde(rename = "snap_positions")]
     pub snap_positions: bool,
+    #[serde(rename = "index_handwriting")]
+    pub index_handwriting: bool,
     #[serde(skip)]
     pub visual_debug: bool,
 }
@@ -56,6 +58,7 @@ impl EngineConfigShared {
         write.pen_sounds = config.pen_sounds;
         write.optimize_epd = config.optimize_epd;
         write.snap_positions = config.snap_positions;
+        write.index_handwriting = config.index_handwriting;
         write.visual_debug = config.visual_debug;
     }
 }

@@ -101,6 +101,15 @@ impl RnAppWindow {
     pub(crate) fn set_autosave_interval_secs(&self, autosave_interval_secs: u32) {
         self.set_property("autosave-interval-secs", autosave_interval_secs.to_value());
     }
+    #[allow(unused)]
+    pub(crate) fn index_handwriting(&self) -> bool {
+        self.property::<bool>("index_handwriting")
+    }
+
+    #[allow(unused)]
+    pub(crate) fn set_index_handwriting(&self, index_handwriting: bool) {
+        self.set_property("index-handwriting", index_handwriting.to_value());
+    }
 
     #[allow(unused)]
     pub(crate) fn righthanded(&self) -> bool {

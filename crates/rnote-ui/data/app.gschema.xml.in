@@ -17,17 +17,15 @@
       <default>false</default>
       <summary>Whether the sidebar is shown or not</summary>
     </key>
-    <key name='color-scheme' type='s'>
+    <key name="color-scheme" type="s">
       <choices>
-        <choice value="default" />
-        <choice value="force-light" />
-        <choice value="force-dark" />
+        <choice value="default"></choice>
+        <choice value="force-light"></choice>
+        <choice value="force-dark"></choice>
       </choices>
       <default>"default"</default>
       <summary>Color scheme</summary>
-      <description>
-        Use the color scheme in the application's UI and in the text area.
-      </description>
+      <description>Use the color scheme in the application's UI and in the text area.</description>
     </key>
     <key name="active-stroke-color" type="(dddd)">
       <default>(0.0, 0.0, 0.0, 1.0)</default>
@@ -120,6 +118,10 @@
     <key name="autosave" type="b">
       <default>true</default>
       <summary>true when autosave is enabled</summary>
+    </key>
+    <key name="index-handwriting" type="b">
+      <default>true</default>
+      <summary>true when actively indexing handwriting</summary>
     </key>
     <key name="autosave-interval-secs" type="u">
       <default>120</default>

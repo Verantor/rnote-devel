@@ -155,7 +155,7 @@ pub enum EngineTask {
         images: GeneratedContentImages,
     },
     HandwritingRecognitionResult {
-        lines: Vec<TextLine>, //consists now of strokes bunds and text 
+        lines: Vec<TextLine>, //consists now of strokes bunds and text
     },
 
     TriggerHandwritingRecognition,
@@ -217,7 +217,7 @@ pub struct Engine {
     #[serde(skip)]
     pub recognition_debug_text: Option<String>,
     #[serde(skip)]
-    pub active_search_results: Vec<crate::store::SearchResult>,
+    pub active_search_results: Vec<SearchResult>,
     #[serde(skip)]
     pub current_search_index: usize,
 
@@ -516,9 +516,11 @@ impl Engine {
                 widget_flags.redraw = true;
             }
             EngineTask::TriggerHandwritingRecognition => {
-                self.recognition_debug_text = Some("Recognizing...".to_string());
-                widget_flags.redraw = true;
-                self.trigger_handwriting_recognition();
+                if self.config.read().index_handwriting {
+                    self.recognition_debug_text = Some("Recognizing...".to_string());
+                    widget_flags.redraw = true;
+                    self.trigger_handwriting_recognition();
+                }
             }
 
             EngineTask::HandwritingRecognitionResult { lines } => {
@@ -986,11 +988,11 @@ impl Engine {
     }
 
     pub(crate) const STROKE_BOUNDS_INTERSECTION_TOLERANCE: f64 = 1e-3;
-    pub fn search_document(&self, query: &str) -> Vec<crate::store::SearchResult> {
+    pub fn search_document(&self, query: &str) -> Vec<SearchResult> {
         self.store.search(query)
     }
 
-    pub fn set_search_results(&mut self, results: Vec<crate::store::SearchResult>) {
+    pub fn set_search_results(&mut self, results: Vec<SearchResult>) {
         self.active_search_results = results;
         self.current_search_index = 0; // Reset index on new search
     }

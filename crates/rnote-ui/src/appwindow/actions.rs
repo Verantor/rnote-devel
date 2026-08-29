@@ -139,6 +139,8 @@ impl RnAppWindow {
         let action_active_tab_move_window =
             gio::SimpleAction::new("active-tab-move-to-new-window", None);
         self.add_action(&action_active_tab_move_window);
+        let action_search = gio::SimpleAction::new("search", None);
+        self.add_action(&action_search);
 
         let color_setters = {
             let p = self.overlays().colorpicker();
@@ -194,6 +196,9 @@ impl RnAppWindow {
         self.add_action(&action_devel_mode);
         let action_visual_debug = gio::PropertyAction::new("visual-debug", self, "visual-debug");
         self.add_action(&action_visual_debug);
+        let action_index_handwriting =
+            gio::PropertyAction::new("index-handwriting", self, "index-handwriting");
+        self.add_action(&action_index_handwriting);
 
         let action_pen_style = gio::SimpleAction::new_stateful(
             "pen-style",
@@ -1175,6 +1180,14 @@ impl RnAppWindow {
                 appwindow.clipboard_paste(last_contextmenu_pos);
             }
         ));
+
+        action_search.connect_activate(clone!(
+            #[weak(rename_to=appwindow)]
+            self,
+            move |_, _| {
+                appwindow.main_header().search_toggle().set_active(true);
+            }
+        ));
     }
 
     pub(crate) fn setup_action_accels(&self) {
@@ -1222,6 +1235,7 @@ impl RnAppWindow {
                 &[&format!("{i}"), &format!("<Ctrl>KP_{i}")],
             )
         });
+        app.set_accels_for_action("win.search", &["<Primary>f"]);
 
         // shortcuts for devel build
         if config::PROFILE.to_lowercase().as_str() == "devel" {

@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ### Canvas Settings ### -->
-<interface>
+<!-- ### Canvas Settings ### --><interface>
   <template class="RnSettingsPanel" parent="GtkWidget">
     <property name="layout-manager">
       <object class="GtkBinLayout"></object>
     </property>
     <style>
-      <class name="settings_panel" />
-      <class name="background" />
+      <class name="settings_panel"></class>
+      <class name="background"></class>
     </style>
     <child>
       <object class="GtkScrolledWindow" id="settings_scroller">
@@ -62,16 +61,19 @@
                     <child>
                       <object class="AdwSwitchRow" id="general_optimize_epd_row">
                         <property name="title" translatable="yes">Optimize for E-Paper Displays</property>
-                        <property name="subtitle" translatable="yes">Changes certain UI elements and modifies behaviour
-of tools for optimized usage on E-Paper displays</property>
+                        <property name="subtitle" translatable="yes">Changes certain UI elements and modifies behaviour of tools for optimized usage on E-Paper displays</property>
                       </object>
                     </child>
                     <child>
                       <object class="AdwSwitchRow" id="general_inertial_scrolling_row">
                         <property name="title" translatable="yes">Inertial Touch Scrolling</property>
-                        <property name="subtitle" translatable="yes">Set whether touch scrolling on the canvas is inertial.
-An application restart is required when this option
-gets disabled.</property>
+                        <property name="subtitle" translatable="yes">Set whether touch scrolling on the canvas is inertial. An application restart is required when this option gets disabled.</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwSwitchRow" id="general_index_handwriting_row">
+                        <property name="title" translatable="yes">Index Handwriting</property>
+                        <property name="subtitle" translatable="yes">Set whether to recognize your handwriting for easy searching</property>
                       </object>
                     </child>
                     <child>
@@ -87,9 +89,9 @@ gets disabled.</property>
                                 <property name="valign">center</property>
                                 <property name="halign">end</property>
                                 <property name="popover">general_regular_cursor_picker_popover</property>
-                                    <property name="icon-name">cursor-dot-medium</property>
+                                <property name="icon-name">cursor-dot-medium</property>
                                 <style>
-                                  <class name="cursor_picker_button" />
+                                  <class name="cursor_picker_button"></class>
                                 </style>
                               </object>
                             </child>
@@ -119,7 +121,7 @@ gets disabled.</property>
                                 <property name="popover">general_drawing_cursor_picker_popover</property>
                                 <property name="icon-name">cursor-dot-small</property>
                                 <style>
-                                  <class name="cursor_picker_button" />
+                                  <class name="cursor_picker_button"></class>
                                 </style>
                               </object>
                             </child>
@@ -141,7 +143,7 @@ gets disabled.</property>
                             <property name="icon_name">save-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Save as Preset</property>
                             <style>
-                              <class name="flat"/>
+                              <class name="flat"></class>
                             </style>
                           </object>
                         </child>
@@ -150,7 +152,7 @@ gets disabled.</property>
                             <property name="icon_name">restore-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Restore From Preset</property>
                             <style>
-                              <class name="flat"/>
+                              <class name="flat"></class>
                             </style>
                           </object>
                         </child>
@@ -187,7 +189,7 @@ gets disabled.</property>
                             <property name="vexpand">false</property>
                             <property name="valign">center</property>
                             <style>
-                              <class name="linked" />
+                              <class name="linked"></class>
                             </style>
                             <child>
                               <object class="GtkToggleButton" id="format_orientation_portrait_toggle">
@@ -210,7 +212,7 @@ gets disabled.</property>
                         <property name="title" translatable="yes">Width</property>
                         <property name="subtitle" translatable="yes">Set the format width</property>
                         <style>
-                          <class name="spin" />
+                          <class name="spin"></class>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="format_width_unitentry">
@@ -227,7 +229,7 @@ gets disabled.</property>
                         <property name="title" translatable="yes">Height</property>
                         <property name="subtitle" translatable="yes">Set the format height</property>
                         <style>
-                          <class name="spin" />
+                          <class name="spin"></class>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="format_height_unitentry">
@@ -263,7 +265,7 @@ gets disabled.</property>
                             <property name="valign">center</property>
                             <property name="label" translatable="yes">Apply</property>
                             <style>
-                              <class name="suggested-action" />
+                              <class name="suggested-action"></class>
                             </style>
                           </object>
                         </child>
@@ -283,7 +285,7 @@ gets disabled.</property>
                             <property name="icon_name">save-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Save as Preset</property>
                             <style>
-                              <class name="flat"/>
+                              <class name="flat"></class>
                             </style>
                           </object>
                         </child>
@@ -292,7 +294,7 @@ gets disabled.</property>
                             <property name="icon_name">restore-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Restore From Preset</property>
                             <style>
-                              <class name="flat"/>
+                              <class name="flat"></class>
                             </style>
                           </object>
                         </child>
@@ -405,7 +407,7 @@ gets disabled.</property>
                         <property name="title" translatable="yes">Pattern Width</property>
                         <property name="subtitle" translatable="yes">Set the background pattern width</property>
                         <style>
-                          <class name="spin" />
+                          <class name="spin"></class>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="doc_background_pattern_width_unitentry">
@@ -422,7 +424,7 @@ gets disabled.</property>
                         <property name="title" translatable="yes">Pattern Height</property>
                         <property name="subtitle" translatable="yes">Set the background pattern height</property>
                         <style>
-                          <class name="spin" />
+                          <class name="spin"></class>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="doc_background_pattern_height_unitentry">
@@ -461,8 +463,7 @@ gets disabled.</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_stylus_button_primary_row">
                         <property name="title" translatable="yes">Stylus Primary Button Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for the
-primary stylus button</property>
+                        <property name="subtitle" translatable="yes">Set the action for the primary stylus button</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">stylus-button-primary-symbolic</property>
@@ -474,8 +475,7 @@ primary stylus button</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_stylus_button_secondary_row">
                         <property name="title" translatable="yes">Stylus Secondary Button Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for the
-secondary stylus button</property>
+                        <property name="subtitle" translatable="yes">Set the action for the secondary stylus button</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">stylus-button-secondary-symbolic</property>
@@ -487,8 +487,7 @@ secondary stylus button</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_mouse_button_secondary_row">
                         <property name="title" translatable="yes">Mouse Secondary Button Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for the
-secondary mouse button</property>
+                        <property name="subtitle" translatable="yes">Set the action for the secondary mouse button</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">mouse-button-secondary-symbolic</property>
@@ -500,8 +499,7 @@ secondary mouse button</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_touch_two_finger_long_press_row">
                         <property name="title" translatable="yes">Touch Two-Finger Long-Press Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for the touch
-two-finger long-press gesture</property>
+                        <property name="subtitle" translatable="yes">Set the action for the touch two-finger long-press gesture</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">touch-two-finger-long-press-symbolic</property>
@@ -513,8 +511,7 @@ two-finger long-press gesture</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_keyboard_ctrl_space_row">
                         <property name="title" translatable="yes">Keyboard Ctrl-Space Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for the keyboard
-Ctrl plus Space shortcut</property>
+                        <property name="subtitle" translatable="yes">Set the action for the keyboard Ctrl plus Space shortcut</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">keyboard-ctrl-space-shortcut-symbolic</property>
@@ -526,8 +523,7 @@ Ctrl plus Space shortcut</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_drawing_pad_button_0">
                         <property name="title" translatable="yes">Drawing Pad Button 1 Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for button 1
-on a drawing pad</property>
+                        <property name="subtitle" translatable="yes">Set the action for button 1 on a drawing pad</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">drawing-pad-button-1-symbolic</property>
@@ -539,8 +535,7 @@ on a drawing pad</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_drawing_pad_button_1">
                         <property name="title" translatable="yes">Drawing Pad Button 2 Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for button 2
-on a drawing pad</property>
+                        <property name="subtitle" translatable="yes">Set the action for button 2 on a drawing pad</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">drawing-pad-button-2-symbolic</property>
@@ -552,8 +547,7 @@ on a drawing pad</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_drawing_pad_button_2">
                         <property name="title" translatable="yes">Drawing Pad Button 3 Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for button 3
-on a drawing pad</property>
+                        <property name="subtitle" translatable="yes">Set the action for button 3 on a drawing pad</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">drawing-pad-button-3-symbolic</property>
@@ -565,8 +559,7 @@ on a drawing pad</property>
                     <child>
                       <object class="RnPenShortcutRow" id="penshortcut_drawing_pad_button_3">
                         <property name="title" translatable="yes">Drawing Pad Button 4 Action</property>
-                        <property name="subtitle" translatable="yes">Set the action for button 4
-on a drawing pad</property>
+                        <property name="subtitle" translatable="yes">Set the action for button 4 on a drawing pad</property>
                         <child type="prefix">
                           <object class="GtkImage">
                             <property name="icon_name">drawing-pad-button-4-symbolic</property>

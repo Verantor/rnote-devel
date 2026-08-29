@@ -41,6 +41,8 @@ mod imp {
         #[template_child]
         pub(crate) general_show_scrollbars_row: TemplateChild<adw::SwitchRow>,
         #[template_child]
+        pub(crate) general_index_handwriting_row: TemplateChild<adw::SwitchRow>,
+        #[template_child]
         pub(crate) general_optimize_epd_row: TemplateChild<adw::SwitchRow>,
         #[template_child]
         pub(crate) general_inertial_scrolling_row: TemplateChild<adw::SwitchRow>,
@@ -664,6 +666,11 @@ impl RnSettingsPanel {
                     }
                 }
             ));
+        imp.general_index_handwriting_row
+            .bind_property("active", appwindow, "index_handwriting")
+            .sync_create()
+            .bidirectional()
+            .build();
     }
 
     fn setup_format(&self, appwindow: &RnAppWindow) {

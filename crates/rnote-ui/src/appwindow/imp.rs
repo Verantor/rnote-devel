@@ -24,6 +24,7 @@ pub(crate) struct RnAppWindow {
     pub(crate) pen_style: Cell<PenStyle>,
     pub(crate) autosave: Cell<bool>,
     pub(crate) autosave_interval_secs: Cell<u32>,
+    pub(crate) index_handwriting: Cell<bool>,
     pub(crate) righthanded: Cell<bool>,
     pub(crate) block_pinch_zoom: Cell<bool>,
     pub(crate) respect_borders: Cell<bool>,
@@ -34,6 +35,7 @@ pub(crate) struct RnAppWindow {
 
     pub(crate) drawing_pad_controller: RefCell<Option<PadController>>,
     pub(crate) autosave_source_id: RefCell<Option<glib::SourceId>>,
+    pub(crate) index_handwriting_source_id: RefCell<Option<glib::SourceId>>,
     pub(crate) periodic_configsave_source_id: RefCell<Option<glib::SourceId>>,
     pub(crate) save_in_progress: Cell<bool>,
     pub(crate) save_in_progress_toast: RefCell<Option<adw::Toast>>,
@@ -63,6 +65,7 @@ impl Default for RnAppWindow {
             pen_style: Cell::new(PenStyle::default()),
             autosave: Cell::new(true),
             autosave_interval_secs: Cell::new(super::RnAppWindow::AUTOSAVE_INTERVAL_DEFAULT),
+            index_handwriting: Cell::new(true),
             righthanded: Cell::new(true),
             block_pinch_zoom: Cell::new(false),
             respect_borders: Cell::new(false),
@@ -74,6 +77,7 @@ impl Default for RnAppWindow {
             drawing_pad_controller: RefCell::new(None),
             autosave_source_id: RefCell::new(None),
             periodic_configsave_source_id: RefCell::new(None),
+            index_handwriting_source_id: RefCell::new(None),
             save_in_progress: Cell::new(false),
             save_in_progress_toast: RefCell::new(None),
             close_in_progress: Cell::new(false),
@@ -157,6 +161,9 @@ impl ObjectImpl for RnAppWindow {
                     .maximum(u32::MAX)
                     .default_value(super::RnAppWindow::AUTOSAVE_INTERVAL_DEFAULT)
                     .build(),
+                glib::ParamSpecBoolean::builder("index-handwriting")
+                    .default_value(false)
+                    .build(),
                 glib::ParamSpecBoolean::builder("righthanded")
                     .default_value(false)
                     .build(),
@@ -193,6 +200,7 @@ impl ObjectImpl for RnAppWindow {
             "pen-style" => self.pen_style.get().to_variant().to_value(),
             "autosave" => self.autosave.get().to_value(),
             "autosave-interval-secs" => self.autosave_interval_secs.get().to_value(),
+            "index-handwriting" => self.index_handwriting.get().to_value(),
             "righthanded" => self.righthanded.get().to_value(),
             "block-pinch-zoom" => self.block_pinch_zoom.get().to_value(),
             "respect-borders" => self.respect_borders.get().to_value(),
@@ -265,6 +273,16 @@ impl ObjectImpl for RnAppWindow {
                 if self.autosave.get() {
                     self.update_autosave_handler();
                 }
+            }
+            "index-handwriting" => {
+                let index_handwriting = value
+                    .get::<bool>()
+                    .expect("The value needs to be of type `bool`");
+
+                // update the UIs internal state
+                self.index_handwriting.replace(index_handwriting);
+                // update engine config state
+                self.engine_config.write().index_handwriting = index_handwriting;
             }
             "righthanded" => {
                 let righthanded = value

@@ -93,10 +93,12 @@ impl RnMainHeader {
 
     pub(crate) fn path_dir_button(&self) -> Button {
         self.imp().path_dir_button.get()
+        //impl open side bar with workspaces
     }
 
     pub(crate) fn path_file_button(&self) -> Button {
         self.imp().path_file_button.get()
+        //impl save file
     }
 
     pub(crate) fn search_toggle(&self) -> ToggleButton {
@@ -126,7 +128,7 @@ impl RnMainHeader {
     pub(crate) fn appmenu(&self) -> RnAppMenu {
         self.imp().appmenu.get()
     }
-    
+
     pub(crate) fn path_dir_content(&self) -> adw::ButtonContent {
         self.imp().path_dir_content.get()
     }
@@ -134,11 +136,11 @@ impl RnMainHeader {
     pub(crate) fn path_file_content(&self) -> adw::ButtonContent {
         self.imp().path_file_content.get()
     }
-    
+
     pub(crate) fn title_stack(&self) -> gtk4::Stack {
         self.imp().title_stack.get()
     }
-    
+
     pub(crate) fn init(&self, appwindow: &RnAppWindow) {
         let imp = self.imp();
         imp.canvasmenu.get().init(appwindow);
