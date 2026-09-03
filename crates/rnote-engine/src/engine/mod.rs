@@ -375,6 +375,7 @@ impl Engine {
             stroke_components: Arc::clone(&store_history_entry.stroke_components),
             chrono_components: Arc::clone(&store_history_entry.chrono_components),
             chrono_counter: store_history_entry.chrono_counter,
+            recognized_text: self.store.recognized_text.clone(),
         }
     }
 
@@ -382,6 +383,7 @@ impl Engine {
     pub fn load_snapshot(&mut self, snapshot: EngineSnapshot) -> WidgetFlags {
         self.document = snapshot.document.extract_snapshot_data();
         self.camera = snapshot.camera.extract_snapshot_data();
+        self.store.recognized_text = snapshot.recognized_text.clone();
         let mut widget_flags = self.store.import_from_snapshot(&snapshot)
             | self.doc_resize_autoexpand()
             | self.current_pen_update_state()
@@ -996,15 +998,13 @@ impl Engine {
         self.active_search_results = results;
         self.current_search_index = 0; // Reset index on new search
     }
-
-    /// jumps cam to the next search results
-    pub fn focus_next_search_result(&mut self) -> WidgetFlags {
-        if self.active_search_results.is_empty() {
+    /// Jumps the camera to a specific search result by its index
+    pub fn focus_search_result_at_index(&mut self, index: usize) -> WidgetFlags {
+        if self.active_search_results.is_empty() || index >= self.active_search_results.len() {
             return WidgetFlags::default();
         }
 
-        self.current_search_index =
-            (self.current_search_index + 1) % self.active_search_results.len();
+        self.current_search_index = index;
         let target_bounds = self.active_search_results[self.current_search_index].bounds;
 
         let center_x = target_bounds.mins.x + (target_bounds.maxs.x - target_bounds.mins.x) / 2.0;
@@ -1019,5 +1019,30 @@ impl Engine {
         );
 
         self.camera_set_offset_expand(new_offset)
+    }
+    /// jumps cam to the next search results
+    pub fn focus_next_search_result(&mut self) -> WidgetFlags {
+        if self.active_search_results.is_empty() {
+            return WidgetFlags::default();
+        }
+
+        self.current_search_index =
+            (self.current_search_index + 1) % self.active_search_results.len();
+
+        self.focus_search_result_at_index(self.current_search_index)
+        // let target_bounds = self.active_search_results[self.current_search_index].bounds;
+
+        // let center_x = target_bounds.mins.x + (target_bounds.maxs.x - target_bounds.mins.x) / 2.0;
+        // let center_y = target_bounds.mins.y + (target_bounds.maxs.y - target_bounds.mins.y) / 2.0;
+
+        // let zoom = self.camera.zoom();
+        // let viewport_size = self.camera.size();
+
+        // let new_offset = p2d::math::Vector2::new(
+        //     (center_x * zoom) - (viewport_size.x / 2.0),
+        //     (center_y * zoom) - (viewport_size.y / 2.0),
+        // );
+
+        // self.camera_set_offset_expand(new_offset)
     }
 }

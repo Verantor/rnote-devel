@@ -10,3 +10,5 @@
 .idea/
 .toggletasks.json
 *.flatpak
+debug_annotations.json
+debug_segmentation.svg

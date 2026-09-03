@@ -19,9 +19,9 @@
     </key>
     <key name="color-scheme" type="s">
       <choices>
-        <choice value="default"></choice>
-        <choice value="force-light"></choice>
-        <choice value="force-dark"></choice>
+        <choice value="default"/>
+        <choice value="force-light"/>
+        <choice value="force-dark"/>
       </choices>
       <default>"default"</default>
       <summary>Color scheme</summary>
@@ -122,6 +122,10 @@
     <key name="index-handwriting" type="b">
       <default>true</default>
       <summary>true when actively indexing handwriting</summary>
+    </key>
+    <key name="index-handwriting-debounce" type="u">
+      <default>1000</default>
+      <summary>the debounce interval for the handwriting recognition</summary>
     </key>
     <key name="autosave-interval-secs" type="u">
       <default>120</default>

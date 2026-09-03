@@ -25,8 +25,6 @@ mod imp {
         #[template_child]
         pub(crate) search_toggle: TemplateChild<ToggleButton>,
         #[template_child]
-        pub(crate) search_entry: TemplateChild<SearchEntry>,
-        #[template_child]
         pub(crate) main_title_unsaved_indicator: TemplateChild<Label>,
         #[template_child]
         pub(crate) left_sidebar_reveal_toggle: TemplateChild<ToggleButton>,
@@ -103,10 +101,6 @@ impl RnMainHeader {
 
     pub(crate) fn search_toggle(&self) -> ToggleButton {
         self.imp().search_toggle.get()
-    }
-
-    pub(crate) fn search_entry(&self) -> SearchEntry {
-        self.imp().search_entry.get()
     }
 
     pub(crate) fn main_title_unsaved_indicator(&self) -> Label {

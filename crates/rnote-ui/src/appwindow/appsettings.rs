@@ -52,6 +52,19 @@ impl RnAppWindow {
             .get_no_changes()
             .build();
 
+        // index handwriting debounce milis
+        app_settings
+            .bind("index-handwriting-debounce", self, "index-handwriting-debounce")
+            .get_no_changes()
+            .build();
+        // index handwriting
+        app_settings
+            .bind("index-handwriting", self, "index-handwriting")
+            .get_no_changes()
+            .build();
+
+
+
         // block pinch zoom
         app_settings
             .bind("block-pinch-zoom", self, "block-pinch-zoom")

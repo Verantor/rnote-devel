@@ -370,6 +370,7 @@ rnote_ui_gresources_ui_files = files(
     'ui/penssidebar/typewriterpage.ui',
     'ui/settingspanel.ui',
     'ui/shortcuts.ui',
+    'ui/searchpanel.ui',
     'ui/sidebar.ui',
     'ui/strokecontentpreview.ui',
     'ui/strokewidthpicker.ui',

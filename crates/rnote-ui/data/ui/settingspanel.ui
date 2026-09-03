@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ### Canvas Settings ### --><interface>
+<!-- ### Canvas Settings ### -->
+<interface>
   <template class="RnSettingsPanel" parent="GtkWidget">
     <property name="layout-manager">
-      <object class="GtkBinLayout"></object>
+      <object class="GtkBinLayout"/>
     </property>
     <style>
-      <class name="settings_panel"></class>
-      <class name="background"></class>
+      <class name="settings_panel"/>
+      <class name="background"/>
     </style>
     <child>
       <object class="GtkScrolledWindow" id="settings_scroller">
@@ -71,9 +72,24 @@
                       </object>
                     </child>
                     <child>
-                      <object class="AdwSwitchRow" id="general_index_handwriting_row">
-                        <property name="title" translatable="yes">Index Handwriting</property>
-                        <property name="subtitle" translatable="yes">Set whether to recognize your handwriting for easy searching</property>
+                      <object class="AdwExpanderRow" id="search_settings_expander">
+                        <property name="title" translatable="yes">Search</property>
+                        <property name="subtitle" translatable="yes">Configure handwriting recognition and search options</property>
+                        <!-- <property name="icon-name">system-search-symbolic</property> -->
+                        <child>
+                          <object class="AdwSwitchRow" id="general_index_handwriting_row">
+                            <property name="title" translatable="yes">Index Handwriting</property>
+                            <property name="subtitle" translatable="yes">Set whether to recognize your handwriting for easy searching</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwSpinRow" id="general_index_handwriting_debounce_row">
+                            <property name="title" translatable="yes">Handwriting Debounce Time (ms)</property>
+                            <property name="subtitle" translatable="yes">Set the delay before handwriting is processed</property>
+                            <property name="adjustment">general_index_handwriting_debounce_adj</property>
+                            <property name="digits">0</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
@@ -91,7 +107,7 @@
                                 <property name="popover">general_regular_cursor_picker_popover</property>
                                 <property name="icon-name">cursor-dot-medium</property>
                                 <style>
-                                  <class name="cursor_picker_button"></class>
+                                  <class name="cursor_picker_button"/>
                                 </style>
                               </object>
                             </child>
@@ -121,7 +137,7 @@
                                 <property name="popover">general_drawing_cursor_picker_popover</property>
                                 <property name="icon-name">cursor-dot-small</property>
                                 <style>
-                                  <class name="cursor_picker_button"></class>
+                                  <class name="cursor_picker_button"/>
                                 </style>
                               </object>
                             </child>
@@ -143,7 +159,7 @@
                             <property name="icon_name">save-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Save as Preset</property>
                             <style>
-                              <class name="flat"></class>
+                              <class name="flat"/>
                             </style>
                           </object>
                         </child>
@@ -152,7 +168,7 @@
                             <property name="icon_name">restore-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Restore From Preset</property>
                             <style>
-                              <class name="flat"></class>
+                              <class name="flat"/>
                             </style>
                           </object>
                         </child>
@@ -189,7 +205,7 @@
                             <property name="vexpand">false</property>
                             <property name="valign">center</property>
                             <style>
-                              <class name="linked"></class>
+                              <class name="linked"/>
                             </style>
                             <child>
                               <object class="GtkToggleButton" id="format_orientation_portrait_toggle">
@@ -212,7 +228,7 @@
                         <property name="title" translatable="yes">Width</property>
                         <property name="subtitle" translatable="yes">Set the format width</property>
                         <style>
-                          <class name="spin"></class>
+                          <class name="spin"/>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="format_width_unitentry">
@@ -229,7 +245,7 @@
                         <property name="title" translatable="yes">Height</property>
                         <property name="subtitle" translatable="yes">Set the format height</property>
                         <style>
-                          <class name="spin"></class>
+                          <class name="spin"/>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="format_height_unitentry">
@@ -265,7 +281,7 @@
                             <property name="valign">center</property>
                             <property name="label" translatable="yes">Apply</property>
                             <style>
-                              <class name="suggested-action"></class>
+                              <class name="suggested-action"/>
                             </style>
                           </object>
                         </child>
@@ -285,7 +301,7 @@
                             <property name="icon_name">save-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Save as Preset</property>
                             <style>
-                              <class name="flat"></class>
+                              <class name="flat"/>
                             </style>
                           </object>
                         </child>
@@ -294,7 +310,7 @@
                             <property name="icon_name">restore-symbolic</property>
                             <property name="tooltip-text" translatable="yes">Restore From Preset</property>
                             <style>
-                              <class name="flat"></class>
+                              <class name="flat"/>
                             </style>
                           </object>
                         </child>
@@ -333,7 +349,7 @@
                             <property name="vexpand">false</property>
                             <property name="valign">center</property>
                             <child>
-                              <object class="GtkColorDialog" id="doc_format_border_color_dialog"></object>
+                              <object class="GtkColorDialog" id="doc_format_border_color_dialog"/>
                               <object class="GtkColorDialogButton" id="doc_format_border_color_button">
                                 <property name="dialog">doc_format_border_color_dialog</property>
                               </object>
@@ -354,7 +370,7 @@
                             <property name="vexpand">false</property>
                             <property name="valign">center</property>
                             <child>
-                              <object class="GtkColorDialog" id="doc_background_color_dialog"></object>
+                              <object class="GtkColorDialog" id="doc_background_color_dialog"/>
                               <object class="GtkColorDialogButton" id="doc_background_color_button">
                                 <property name="dialog">doc_background_color_dialog</property>
                               </object>
@@ -393,7 +409,7 @@
                             <property name="vexpand">false</property>
                             <property name="valign">center</property>
                             <child>
-                              <object class="GtkColorDialog" id="doc_background_pattern_color_dialog"></object>
+                              <object class="GtkColorDialog" id="doc_background_pattern_color_dialog"/>
                               <object class="GtkColorDialogButton" id="doc_background_pattern_color_button">
                                 <property name="dialog">doc_background_pattern_color_dialog</property>
                               </object>
@@ -407,7 +423,7 @@
                         <property name="title" translatable="yes">Pattern Width</property>
                         <property name="subtitle" translatable="yes">Set the background pattern width</property>
                         <style>
-                          <class name="spin"></class>
+                          <class name="spin"/>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="doc_background_pattern_width_unitentry">
@@ -424,7 +440,7 @@
                         <property name="title" translatable="yes">Pattern Height</property>
                         <property name="subtitle" translatable="yes">Set the background pattern height</property>
                         <style>
-                          <class name="spin"></class>
+                          <class name="spin"/>
                         </style>
                         <child type="suffix">
                           <object class="RnUnitEntry" id="doc_background_pattern_height_unitentry">
@@ -601,6 +617,13 @@
       <property name="upper">9999</property>
       <property name="lower">5</property>
       <property name="value">120</property>
+    </object>
+    <object class="GtkAdjustment" id="general_index_handwriting_debounce_adj">
+      <property name="step-increment">100</property>
+      <property name="page-increment">500</property>
+      <property name="lower">100</property>
+      <property name="upper">10000</property>
+      <property name="value">1000</property>
     </object>
   </template>
 </interface>

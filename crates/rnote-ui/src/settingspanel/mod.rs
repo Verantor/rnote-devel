@@ -43,6 +43,8 @@ mod imp {
         #[template_child]
         pub(crate) general_index_handwriting_row: TemplateChild<adw::SwitchRow>,
         #[template_child]
+        pub(crate) general_index_handwriting_debounce_row: TemplateChild<adw::SpinRow>,
+        #[template_child]
         pub(crate) general_optimize_epd_row: TemplateChild<adw::SwitchRow>,
         #[template_child]
         pub(crate) general_inertial_scrolling_row: TemplateChild<adw::SwitchRow>,
@@ -568,6 +570,14 @@ impl RnSettingsPanel {
             .sync_create()
             .bidirectional()
             .build();
+        imp.general_index_handwriting_debounce_row
+            .get()
+            .bind_property("value", appwindow,"index-handwriting-debounce")
+            .transform_to(|_, val: f64| Some((val.round() as u32).to_value()))
+                  .transform_from(|_, val: u32| Some(f64::from(val).to_value()))
+                  .sync_create()
+                  .bidirectional()
+                  .build();
 
         let set_overlays_margins = |appwindow: &RnAppWindow, row_active: bool| {
             let (m1, m2) = if row_active { (18, 72) } else { (9, 63) };

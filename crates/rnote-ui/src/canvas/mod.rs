@@ -483,7 +483,7 @@ mod imp {
                 // push the clip
                 snapshot.push_clip(&gtk4::graphene::Rect::from_p2d_aabb(clip_bounds));
 
-                // Draw the entire engine (Strokes, Background, etc.)
+                // Draw the entire engine
                 self.engine
                     .borrow()
                     .draw_to_gtk_snapshot(snapshot, obj.bounds())?;
@@ -523,7 +523,6 @@ mod imp {
                         }
                     }
                 }
-                // -----------------------------------
 
                 // pop the clip
                 snapshot.pop();

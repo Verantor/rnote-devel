@@ -25,6 +25,7 @@ pub(crate) struct RnAppWindow {
     pub(crate) autosave: Cell<bool>,
     pub(crate) autosave_interval_secs: Cell<u32>,
     pub(crate) index_handwriting: Cell<bool>,
+    pub(crate) index_handwriting_debounce: Cell<u32>,
     pub(crate) righthanded: Cell<bool>,
     pub(crate) block_pinch_zoom: Cell<bool>,
     pub(crate) respect_borders: Cell<bool>,
@@ -36,6 +37,7 @@ pub(crate) struct RnAppWindow {
     pub(crate) drawing_pad_controller: RefCell<Option<PadController>>,
     pub(crate) autosave_source_id: RefCell<Option<glib::SourceId>>,
     pub(crate) index_handwriting_source_id: RefCell<Option<glib::SourceId>>,
+    pub(crate) index_handwriting_debounce_source_id: RefCell<Option<glib::SourceId>>,
     pub(crate) periodic_configsave_source_id: RefCell<Option<glib::SourceId>>,
     pub(crate) save_in_progress: Cell<bool>,
     pub(crate) save_in_progress_toast: RefCell<Option<adw::Toast>>,
@@ -66,6 +68,7 @@ impl Default for RnAppWindow {
             autosave: Cell::new(true),
             autosave_interval_secs: Cell::new(super::RnAppWindow::AUTOSAVE_INTERVAL_DEFAULT),
             index_handwriting: Cell::new(true),
+            index_handwriting_debounce: Cell::new(super::RnAppWindow::INDEX_HANDWRITING_DEBOUNCE),
             righthanded: Cell::new(true),
             block_pinch_zoom: Cell::new(false),
             respect_borders: Cell::new(false),
@@ -78,6 +81,7 @@ impl Default for RnAppWindow {
             autosave_source_id: RefCell::new(None),
             periodic_configsave_source_id: RefCell::new(None),
             index_handwriting_source_id: RefCell::new(None),
+            index_handwriting_debounce_source_id: RefCell::new(None),
             save_in_progress: Cell::new(false),
             save_in_progress_toast: RefCell::new(None),
             close_in_progress: Cell::new(false),
@@ -161,6 +165,11 @@ impl ObjectImpl for RnAppWindow {
                     .maximum(u32::MAX)
                     .default_value(super::RnAppWindow::AUTOSAVE_INTERVAL_DEFAULT)
                     .build(),
+                glib::ParamSpecUInt::builder("index-handwriting-debounce")
+                    .minimum(100)
+                    .maximum(u32::MAX)
+                    .default_value(super::RnAppWindow::INDEX_HANDWRITING_DEBOUNCE)
+                    .build(),
                 glib::ParamSpecBoolean::builder("index-handwriting")
                     .default_value(false)
                     .build(),
@@ -201,6 +210,7 @@ impl ObjectImpl for RnAppWindow {
             "autosave" => self.autosave.get().to_value(),
             "autosave-interval-secs" => self.autosave_interval_secs.get().to_value(),
             "index-handwriting" => self.index_handwriting.get().to_value(),
+            "index-handwriting-debounce" => self.index_handwriting_debounce.get().to_value(),
             "righthanded" => self.righthanded.get().to_value(),
             "block-pinch-zoom" => self.block_pinch_zoom.get().to_value(),
             "respect-borders" => self.respect_borders.get().to_value(),
@@ -283,6 +293,9 @@ impl ObjectImpl for RnAppWindow {
                 self.index_handwriting.replace(index_handwriting);
                 // update engine config state
                 self.engine_config.write().index_handwriting = index_handwriting;
+            }
+            "index-handwriting-debounce" =>{
+               //impl
             }
             "righthanded" => {
                 let righthanded = value

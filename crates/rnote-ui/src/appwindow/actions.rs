@@ -1182,10 +1182,25 @@ impl RnAppWindow {
         ));
 
         action_search.connect_activate(clone!(
-            #[weak(rename_to=appwindow)]
+            #[weak(rename_to = appwindow)]
             self,
             move |_, _| {
-                appwindow.main_header().search_toggle().set_active(true);
+                let split_view = appwindow.split_view();
+                let stack = appwindow.sidebar().sidebar_stack();
+
+                // check if the sidebar is visible AND the active page is the search page
+                let is_sidebar_visible = split_view.shows_sidebar();
+                let is_on_search_page = stack
+                    .visible_child_name()
+                    .is_some_and(|name| name == "search_page");
+
+                if is_sidebar_visible && is_on_search_page {
+                    split_view.set_show_sidebar(false);
+                } else {
+                    split_view.set_show_sidebar(true);
+                    stack.set_visible_child_name("search_page");
+                    appwindow.sidebar().search_panel().open_search();
+                }
             }
         ));
     }

@@ -5,8 +5,8 @@ mod imp;
 
 // Imports
 use crate::{
-    FileType, RnApp, RnCanvas, RnCanvasWrapper, RnMainHeader, RnOverlays, RnSidebar, config,
-    dialogs, env,
+    FileType, RnApp, RnCanvas, RnCanvasWrapper, RnMainHeader, RnOverlays, RnSearchPanel, RnSidebar,
+    config, dialogs, env,
 };
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Ref, RefMut};
@@ -35,6 +35,7 @@ glib::wrapper! {
 impl RnAppWindow {
     const AUTOSAVE_INTERVAL_DEFAULT: u32 = 30;
     const PERIODIC_CONFIGSAVE_INTERVAL: u32 = 10;
+    const INDEX_HANDWRITING_DEBOUNCE: u32 = 1000;
 
     pub(crate) fn new(app: &Application) -> Self {
         glib::Object::builder().property("application", app).build()
@@ -100,6 +101,15 @@ impl RnAppWindow {
     #[allow(unused)]
     pub(crate) fn set_autosave_interval_secs(&self, autosave_interval_secs: u32) {
         self.set_property("autosave-interval-secs", autosave_interval_secs.to_value());
+    }
+    #[allow(unused)]
+    pub(crate) fn index_handwriting_debounce(&self) -> u32 {
+        self.property::<u32>("index-handwriting-debounce")
+    }
+
+    #[allow(unused)]
+    pub(crate) fn set_index_handwriting_debounce(&self, index_handwriting_debounce: u32) {
+        self.set_property("index-handwriting-debounce", index_handwriting_debounce.to_value());
     }
     #[allow(unused)]
     pub(crate) fn index_handwriting(&self) -> bool {
@@ -222,79 +232,6 @@ impl RnAppWindow {
         imp.overlays.get().init(self);
         imp.sidebar.get().init(self);
         imp.main_header.get().init(self);
-
-        let main_header = self.main_header();
-        let search_entry = self.main_header().search_entry();
-        // Switch to search page when the button is toggled
-        main_header.search_toggle().connect_toggled(clone!(
-            #[weak]
-            main_header,
-            move |btn| {
-                if btn.is_active() {
-                    main_header
-                        .title_stack()
-                        .set_visible_child_name("search_page");
-                    main_header.search_entry().grab_focus();
-                } else {
-                    main_header
-                        .title_stack()
-                        .set_visible_child_name("breadcrumbs_page");
-                }
-            }
-        ));
-        search_entry.connect_activate(glib::clone!(
-            #[weak(rename_to = window)]
-            self,
-            move |_| {
-                if let Some(canvas) = window.active_tab_canvas() {
-                    let mut engine_mut = canvas.engine_mut();
-
-                    // Move camera
-                    let flags = engine_mut.focus_next_search_result();
-
-                    // Trigger UI updates
-                    window.handle_widget_flags(flags, &canvas);
-                }
-            }
-        ));
-        // Revert to breadcrumbs if the user presses 'Escape' inside the search entry
-        main_header.search_entry().connect_stop_search(clone!(
-            #[weak]
-            main_header,
-            move |_| {
-                main_header.search_toggle().set_active(false);
-            }
-        ));
-
-        // --- NEW: Handle live search text changes ---
-        main_header.search_entry().connect_search_changed(clone!(
-            #[weak(rename_to = window)]
-            self,
-            move |entry| {
-                let query = entry.text();
-
-                // Get the currently active canvas
-                if let Some(canvas) = window.active_tab_canvas() {
-                    let mut engine_mut = canvas.engine_mut();
-
-                    // 1. Run the search in the engine store
-                    let results = engine_mut.search_document(&query);
-
-                    // 2. Store the active results in the engine so the renderer can see them
-                    engine_mut.set_search_results(results);
-
-                    // 3. Flag the canvas for a redraw to show/hide highlights
-                    let mut flags = WidgetFlags::default();
-                    flags.redraw = true;
-                    window.handle_widget_flags(flags, &canvas);
-                }
-            }
-        ));
-        // --------------------------------------------
-
-        // actions and settings AFTER widget inits
-        self.setup_icon_theme();
-
         // actions and settings AFTER widget inits
         self.setup_icon_theme();
         self.setup_actions();

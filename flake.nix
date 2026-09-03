@@ -42,7 +42,7 @@
             desktop-file-utils
             shared-mime-info
             appstream-glib
-
+            libxml2
             (rust-bin.stable.latest.default.override {
               extensions = [
                 "rust-src"

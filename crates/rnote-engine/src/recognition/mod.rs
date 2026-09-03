@@ -3,18 +3,23 @@ use crate::store::text_comp::TextLine;
 
 use crate::engine::{EngineTask, EngineTaskSender};
 use crate::store::StrokeKey;
-// use crate::strokes::Stroke;
 use crate::tasks::{OneOffTaskError, OneOffTaskHandle};
+use ort::{
+    session::{Session, builder::GraphOptimizationLevel},
+    value::Tensor,
+};
 use p2d::bounding_volume::{Aabb, BoundingVolume};
 use p2d::math::Vector2;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::{error, info};
-// Import ORT Value/Tensor types
-use ort::{
-    session::{Session, builder::GraphOptimizationLevel},
-    value::Tensor,
-};
+
+#[cfg(debug_assertions)]
+pub mod debug_export;
+
+// Expose the new segmentation module
+pub mod segmentation;
+use segmentation::segment_into_lines;
 
 pub fn load_model_session(path: &str) -> Result<Session, Box<dyn std::error::Error>> {
     let session = Session::builder()?
@@ -44,62 +49,6 @@ impl RecognitionStroke {
         }
         aabb
     }
-}
-
-pub fn segment_into_lines(
-    strokes: &[RecognitionStroke],
-    vertical_threshold: f64,
-) -> Vec<Vec<RecognitionStroke>> {
-    if strokes.is_empty() {
-        return vec![];
-    }
-
-    let mut strokes_with_bounds: Vec<(&RecognitionStroke, f64, f64, f64)> = strokes
-        .iter()
-        .map(|stroke| {
-            let bounds = stroke.bounds();
-            let min_y = bounds.mins.y;
-            let max_y = bounds.maxs.y;
-            let height = max_y - min_y;
-            (stroke, min_y, max_y, height)
-        })
-        .collect();
-
-    strokes_with_bounds.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-
-    // Bit useless because big letters like h and g push the bounding box so no threshold needed (or negative but smart)
-    let avg_height: f64 =
-        strokes_with_bounds.iter().map(|s| s.3).sum::<f64>() / strokes_with_bounds.len() as f64;
-    let dynamic_threshold = (avg_height * 0.4).max(vertical_threshold);
-
-    let mut lines = Vec::new();
-    let mut current_line = vec![strokes_with_bounds[0].0.clone()];
-    let mut current_line_bottom = strokes_with_bounds[0].2;
-
-    for (stroke, min_y, max_y, _) in strokes_with_bounds.into_iter().skip(1) {
-        if min_y > current_line_bottom + dynamic_threshold {
-            lines.push(current_line);
-            current_line = vec![stroke.clone()];
-            current_line_bottom = max_y;
-        } else {
-            current_line.push(stroke.clone());
-            current_line_bottom = current_line_bottom.max(max_y);
-        }
-    }
-    lines.push(current_line);
-
-    // this destroys time order
-    // for line in &mut lines {
-    //     line.sort_by(|a, b| {
-    //         let min_x_a = a.bounds().mins.x;
-    //         let min_x_b = b.bounds().mins.x;
-    //         min_x_a
-    //             .partial_cmp(&min_x_b)
-    //             .unwrap_or(std::cmp::Ordering::Equal)
-    //     });
-    // }
-
-    lines
 }
 
 pub fn get_strokes_bounds(strokes: &[RecognitionStroke]) -> Option<Aabb> {
@@ -165,15 +114,15 @@ fn get_stroke_centroid(stroke: &RecognitionStroke) -> Option<Vector2> {
 }
 
 pub fn calculate_skew_angle(strokes: &[RecognitionStroke]) -> f64 {
-    let mut centroids = Vec::new();
+    let mut centroids = Vec::with_capacity(strokes.len());
     let mut sum_x = 0.0_f64;
     let mut sum_y = 0.0_f64;
 
     for stroke in strokes {
         if let Some(centroid) = get_stroke_centroid(stroke) {
-            centroids.push(centroid.clone());
             sum_x += centroid.x as f64;
             sum_y += centroid.y as f64;
+            centroids.push(centroid);
         }
     }
 
@@ -229,7 +178,6 @@ pub fn deskew_strokes(strokes: &[RecognitionStroke]) -> Vec<RecognitionStroke> {
         })
         .collect()
 }
-// --- Preprocessing & Rendering ---
 
 fn process_strokes_to_tensor(
     strokes: &[RecognitionStroke],
@@ -237,12 +185,11 @@ fn process_strokes_to_tensor(
     max_h: usize,
     padding: f32,
 ) -> Vec<f32> {
-    let bounds_opt = get_strokes_bounds(strokes);
-    if bounds_opt.is_none() {
-        return vec![0.0; 3 * max_w * max_h];
-    }
+    let bounds = match get_strokes_bounds(strokes) {
+        Some(b) => b,
+        None => return vec![-1.0; 3 * max_w * max_h],
+    };
 
-    let bounds = bounds_opt.unwrap();
     let min_x = bounds.mins.x as f32;
     let max_x = bounds.maxs.x as f32;
     let min_y = bounds.mins.y as f32;
@@ -251,7 +198,7 @@ fn process_strokes_to_tensor(
     let total_points: usize = strokes.iter().map(|s| s.points.len()).sum();
 
     if total_points < 2 {
-        return vec![0.0; 3 * max_w * max_h];
+        return vec![-1.0; 3 * max_w * max_h];
     }
 
     let w = (max_x - min_x).max(1e-5);
@@ -263,7 +210,8 @@ fn process_strokes_to_tensor(
     }
 
     let y_offset = (max_h as f32 - (h * scale)) / 2.0;
-    let mut buffer = vec![0.0f32; 3 * max_w * max_h];
+
+    let mut buffer = vec![-1.0f32; 3 * max_w * max_h];
 
     let mut global_pt_idx = 0;
     let time_range = (total_points as f32 - 1.0).max(1e-5);
@@ -289,6 +237,10 @@ fn process_strokes_to_tensor(
             let norm_angle = (angle + std::f32::consts::PI) / (2.0 * std::f32::consts::PI);
             let norm_time = (global_pt_idx as f32) / time_range;
 
+            let v_mask_scaled = 1.0;
+            let v_time_scaled = (norm_time - 0.5) * 2.0;
+            let v_angle_scaled = (norm_angle - 0.5) * 2.0;
+
             draw_line(
                 &mut buffer,
                 max_w,
@@ -297,18 +249,15 @@ fn process_strokes_to_tensor(
                 y0,
                 x1,
                 y1,
-                1.0,
-                norm_time,
-                norm_angle,
+                v_mask_scaled,
+                v_time_scaled,
+                v_angle_scaled,
             );
             global_pt_idx += 1;
         }
         global_pt_idx += 1;
     }
 
-    for val in buffer.iter_mut() {
-        *val = (*val - 0.5) * 2.0;
-    }
     buffer
 }
 
@@ -371,9 +320,6 @@ impl HandwritingRecognizer {
         }
     }
 
-    // Notice that you now feed it `Vec<RecognitionStroke>` directly from the caller
-    // (where `StrokeStore` will have extracted it), OR you can call `Stroke::extract_recognition_data` here
-    // if you keep the method on `Stroke`.
     pub fn trigger_recognition_debounced(
         &self,
         raw_stroke_data: Vec<RecognitionStroke>,
@@ -390,6 +336,18 @@ impl HandwritingRecognizer {
             }
 
             let lines = segment_into_lines(&raw_stroke_data, 0.0);
+            #[cfg(debug_assertions)]
+            {
+                // crate::recognition::debug_export::export_debug_svg(
+                //     &lines,
+                //     "debug_segmentation.svg",
+                // );
+
+                // let _ = crate::recognition::debug_export::export_for_annotation(
+                //     &lines,
+                //     "debug_annotations.json",
+                // );
+            }
             let mut recognized_lines: Vec<TextLine> = Vec::new();
             let mut deskew_debug_infos: Vec<crate::engine::DeskewDebugData> = Vec::new();
 
@@ -401,20 +359,15 @@ impl HandwritingRecognizer {
                     continue;
                 }
 
-                // fingerprinting of strokes
                 let mut current_stroke_ids: Vec<StrokeKey> =
                     line_strokes.iter().map(|s| s.id).collect();
-                current_stroke_ids.sort(); // Sort to ensure consistent comparison
+                current_stroke_ids.sort_unstable();
 
-                // check if we know this line
-                let already_recognized = existing_text.iter().find(|old_line| {
-                    let mut old_ids = old_line.stroke_keys.clone();
-                    old_ids.sort();
-                    old_ids == current_stroke_ids
-                });
+                let already_recognized = existing_text
+                    .iter()
+                    .find(|old_line| old_line.stroke_keys == current_stroke_ids);
 
                 if let Some(reusable_line) = already_recognized {
-                    // skip recogniton and reuse the old result
                     recognized_lines.push(reusable_line.clone());
                     continue;
                 }
@@ -487,24 +440,14 @@ impl HandwritingRecognizer {
                         let vocab_size = shape[2] as usize;
 
                         let vocab: &[char] = &[
-                            '\0', // Letters: Lowercase (English + German)
-                            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-                            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö',
-                            'ü', 'ß', // Letters: Uppercase (English + German)
-                            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-                            'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Ä', 'Ö',
-                            'Ü', // Numbers
-                            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                            // Basic Punctuation (Sentence structure)
-                            '.', ',', ':', ';', '!', '?',
-                            // Dashes and Quotes (Including en-dash)
-                            '-', '"', // Brackets and Parentheses
-                            '(', ')', '[', ']', // Math, Logic, and Paths
-                            '+', '*', '/', '\\', '=', '<', '>', '^',
-                            // Currency, Units, Tech, and Misc Symbols
-                            '_', '%', '°', '$', '€', '@', '#', '&', '§',
-                            // Whitespace (Space)
-                            ' ',
+                            '\0', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+                            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä',
+                            'ö', 'ü', 'ß', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                            'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+                            'Z', 'Ä', 'Ö', 'Ü', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                            '.', ',', ':', ';', '!', '?', '-', '"', '(', ')', '[', ']', '+', '*',
+                            '/', '\\', '=', '<', '>', '^', '_', '%', '°', '$', '€', '@', '#', '&',
+                            '§', ' ',
                         ];
                         let mut decoded_chars = Vec::new();
                         let mut last_token = None;
